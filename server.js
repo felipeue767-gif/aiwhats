@@ -1,9 +1,4 @@
-const express = require('express');
-const { createServer } = require('http');
-const { Server } = require('socket.io');
-const cors = require('cors');
-const path = require('path');
-const { AIService, StickerService } = require('./src/ai-service');
+const WhatsAppClient = require('./src/whatsapp-client');
 
 const app = express();
 const server = createServer(app);
