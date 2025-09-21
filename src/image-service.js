@@ -19,72 +19,72 @@ class ImageService {
         return imageKeywords.some(keyword => lowerMessage.includes(keyword));
     }
 
-    // Extrai o prompt da mensagem
-    extractPrompt(message) {
-        // Remove palavras de comando e limpa o texto
-        let prompt = message
-            .replace(/\b(cria|crie|criar|gere|gera|gerar|generate|create)\b/gi, '')
-            .replace(/\b(imagem|image|foto|picture|drawing|art|arte)\b/gi, '')
-            .replace(/\b(desenha|desenhe|draw|pinta|pinte|paint)\b/gi, '')
-            .replace(/\b(ilustra|ilustre|illustrate|mostra|mostre|show)\b/gi, '')
-            .replace(/\b(uma|um|uns?|umas?|da|de|do|pra|para|com|sem)\b/gi, ' ')
-            .trim();
-
-        // Se o prompt ficou muito curto, usa a mensagem original
-        if (prompt.length < 5) {
-            prompt = message;
-        }
-
-        return prompt;
-    }
-
-    // Gera a imagem usando Pollinations.ai
-    async generateImage(prompt, seed = null) {
+    // Gera a imagem usando Pollinations.ai com prompt otimizado
+    async generateImage(optimizedPrompt) {
         try {
+            console.log('🎨 Gerando imagem com prompt otimizado:', optimizedPrompt);
+            
             // Codifica o prompt para URL
-            const encodedPrompt = encodeURIComponent(prompt);
-            let imageUrl = `${this.baseUrl}${encodedPrompt}`;
-
-            // Adiciona parâmetros opcionais
-            const params = new URLSearchParams();
-            params.append('nologo', 'true'); // Remove o logo
-            params.append('width', '1024');
-            params.append('height', '1024');
-
-            if (seed) {
-                params.append('seed', seed.toString());
-            }
-
-            imageUrl += '?' + params.toString();
-
-            console.log('🎨 Gerando imagem com prompt:', prompt);
+            const encodedPrompt = encodeURIComponent(optimizedPrompt);
+            
+            // URL mais simples e direta do Pollinations
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&enhance=true`;
+            
             console.log('🔗 URL da imagem:', imageUrl);
+
+            // Headers para requisição mais robusta
+            const headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'image/*,*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            };
 
             // Faz a requisição para gerar a imagem
             const response = await axios.get(imageUrl, {
-                timeout: 30000,
-                responseType: 'arraybuffer'
+                timeout: 45000, // 45 segundos
+                responseType: 'arraybuffer',
+                headers: headers,
+                maxRedirects: 5,
+                validateStatus: function (status) {
+                    return status >= 200 && status < 300;
+                }
             });
 
+            console.log('📥 Resposta recebida, status:', response.status);
+            console.log('📄 Content-Type:', response.headers['content-type']);
+            console.log('📊 Tamanho da imagem:', response.data.length, 'bytes');
+
+            if (response.data.length < 1000) {
+                throw new Error('Imagem muito pequena, provavelmente inválida');
+            }
+
             // Converte para base64
-            const base64 = Buffer.from(response.data, 'binary').toString('base64');
+            const base64 = Buffer.from(response.data).toString('base64');
             const mimeType = response.headers['content-type'] || 'image/jpeg';
 
-            console.log('✅ Imagem gerada com sucesso!');
+            console.log('✅ Imagem gerada com sucesso! Tamanho base64:', base64.length);
 
             return {
                 success: true,
                 imageBase64: base64,
                 mimeType: mimeType,
-                prompt: prompt,
+                prompt: optimizedPrompt,
                 url: imageUrl
             };
 
         } catch (error) {
-            console.error('❌ Erro ao gerar imagem:', error.message);
+            console.error('❌ Erro detalhado ao gerar imagem:');
+            console.error('❌ Mensagem:', error.message);
+            console.error('❌ Status:', error.response?.status);
+            console.error('❌ Data:', error.response?.data?.toString().substring(0, 200));
+            
             return {
                 success: false,
-                error: error.message
+                error: error.message,
+                status: error.response?.status,
+                details: error.response?.data?.toString().substring(0, 200)
             };
         }
     }

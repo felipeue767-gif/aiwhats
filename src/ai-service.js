@@ -349,6 +349,79 @@ class AIService {
         console.log('🔑 API Key atualizada para Requesty');
     }
     
+    // Gera prompt otimizado para criação de imagem
+    async generateImagePrompt(userMessage) {
+        try {
+            console.log('🧠 Gerando prompt otimizado para imagem com base em:', userMessage);
+            
+            const promptSystem = `Você é um especialista em criar prompts para IA de imagens. Sua tarefa é converter pedidos do usuário em prompts detalhados e eficazes em INGLÊS para gerar imagens de alta qualidade.
+
+REGRAS:
+- Responda APENAS com o prompt em inglês, sem explicações
+- Use descrições visuais detalhadas
+- Inclua estilo artístico quando apropriado
+- Use termos técnicos de arte/fotografia
+- Seja específico sobre cores, iluminação, composição
+- Máximo 150 caracteres para ser eficiente
+
+EXEMPLOS:
+Entrada: "crie um gato fofo"
+Saída: "cute fluffy orange cat, adorable big eyes, soft fur, natural lighting, high quality, detailed, kawaii style"
+
+Entrada: "desenhe uma paisagem"
+Saída: "beautiful landscape, rolling hills, sunset golden hour, dramatic sky, vibrant colors, cinematic composition, 4k"
+
+Agora converta este pedido do usuário em um prompt otimizado:`;
+
+            const response = await this.generateGeminiResponse(userMessage, [], promptSystem);
+            
+            // Limpar e validar o prompt gerado
+            let optimizedPrompt = response.trim()
+                .replace(/^["'`]|["'`]$/g, '') // Remove aspas do início/fim
+                .replace(/\n|\r/g, ' ') // Remove quebras de linha
+                .trim();
+
+            // Se ficou muito curto ou não foi gerado adequadamente, usar uma versão básica
+            if (optimizedPrompt.length < 10 || optimizedPrompt.includes('não posso') || optimizedPrompt.includes('desculpe')) {
+                optimizedPrompt = `${userMessage}, high quality, detailed, beautiful, artistic style`;
+            }
+
+            console.log('✨ Prompt otimizado gerado:', optimizedPrompt);
+            return optimizedPrompt;
+
+        } catch (error) {
+            console.error('❌ Erro ao gerar prompt de imagem:', error);
+            // Fallback simples
+            return `${userMessage}, high quality, detailed, beautiful artwork`;
+        }
+    }
+
+    // Gera descrição da imagem após criação
+    async generateImageDescription(originalRequest, generatedPrompt) {
+        try {
+            const promptSystem = `Você é um assistente que comenta sobre imagens geradas. Seja casual, descolado e empolgado.
+
+REGRAS:
+- Fale como se fosse um amigo que acabou de criar algo legal
+- Use gírias atuais e seja natural
+- Comente sobre o que foi criado baseado no prompt
+- Seja breve (máximo 2 frases)
+- Seja empolgado mas não exagere
+
+O usuário pediu: "${originalRequest}"
+Foi criado com o prompt: "${generatedPrompt}"
+
+Agora faça um comentário legal sobre a imagem que foi gerada:`;
+
+            const description = await this.generateGeminiResponse(originalRequest, [], promptSystem);
+            return description.trim();
+
+        } catch (error) {
+            console.error('❌ Erro ao gerar descrição:', error);
+            return `Pronto! Criei essa imagem baseada no que você pediu. Ficou bacana, né? 🎨`;
+        }
+    }
+
     // Método para atualizar personalidade da IA
     updatePersonality(newPersonality) {
         this.personality = { ...this.personality, ...newPersonality };

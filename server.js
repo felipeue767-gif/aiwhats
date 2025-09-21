@@ -194,39 +194,53 @@ whatsappClient.on('message', async (message) => {
                     console.log('🎨 Pedido de geração de imagem detectado!');
 
                     try {
-                        // Extrair o prompt da mensagem
-                        const prompt = imageService.extractPrompt(currentMessage.text);
+                        // PASSO 1: IA gera prompt otimizado
+                        console.log('🧠 IA gerando prompt otimizado...');
+                        await whatsappClient.sendMessage(chatId, '🧠 Analisando seu pedido e criando o prompt perfeito...');
+                        
+                        const optimizedPrompt = await aiService.generateImagePrompt(currentMessage.text);
+                        console.log('✨ Prompt otimizado pela IA:', optimizedPrompt);
 
-                        // Enviar mensagem de processamento
-                        const processingMsg = `🎨 Gerando imagem: "${prompt}"... Um momento!`;
-                        await whatsappClient.sendMessage(chatId, processingMsg);
-
-                        // Gerar a imagem
-                        const imageResult = await imageService.generateImage(prompt);
+                        // PASSO 2: Gerar imagem com prompt otimizado
+                        console.log('🎨 Gerando imagem com Pollinations.ai...');
+                        await whatsappClient.sendMessage(chatId, `🎨 Gerando sua imagem... Prompt: "${optimizedPrompt}"`);
+                        
+                        const imageResult = await imageService.generateImage(optimizedPrompt);
 
                         if (imageResult.success) {
-                            // Adicionar aos dados da mensagem para a IA
-                            currentMessage.hasImage = true;
-                            currentMessage.imageBase64 = imageResult.imageBase64;
-                            currentMessage.imageMimeType = imageResult.mimeType;
-                            currentMessage.generatedImage = true;
-                            currentMessage.imagePrompt = prompt;
-
-                            // Enviar a imagem
+                            console.log('✅ Imagem gerada com sucesso!');
+                            
+                            // PASSO 3: IA gera descrição e envia imagem
+                            console.log('💬 IA gerando descrição da imagem...');
+                            const aiDescription = await aiService.generateImageDescription(currentMessage.text, optimizedPrompt);
+                            
+                            // Enviar a imagem com descrição da IA
                             await whatsappClient.sendMessage(chatId, {
                                 image: Buffer.from(imageResult.imageBase64, 'base64'),
-                                caption: imageService.generateImageDescription(prompt)
+                                caption: aiDescription
                             });
 
-                            console.log('✅ Imagem gerada e enviada com sucesso!');
+                            console.log('✅ Fluxo completo de geração de imagem concluído!');
 
                         } else {
-                            await whatsappClient.sendMessage(chatId, '😔 Ops! Não consegui gerar a imagem. Tenta com outro prompt?');
+                            console.error('❌ Falha na geração da imagem:', imageResult.error);
+                            
+                            // Mostrar erro detalhado se disponível
+                            let errorMsg = '😔 Ops! Não consegui gerar a imagem.';
+                            if (imageResult.status) {
+                                errorMsg += ` (Erro ${imageResult.status})`;
+                            }
+                            if (imageResult.details) {
+                                errorMsg += ` Detalhes: ${imageResult.details}`;
+                            }
+                            errorMsg += ' Tenta novamente com outro pedido!';
+                            
+                            await whatsappClient.sendMessage(chatId, errorMsg);
                         }
 
                     } catch (error) {
-                        console.error('❌ Erro ao gerar imagem:', error);
-                        await whatsappClient.sendMessage(chatId, '😔 Deu erro na geração da imagem. Tenta novamente!');
+                        console.error('❌ Erro no fluxo completo de geração de imagem:', error);
+                        await whatsappClient.sendMessage(chatId, '😔 Deu erro no processo de criação da imagem. Tenta novamente!');
                     }
 
                 } else {
