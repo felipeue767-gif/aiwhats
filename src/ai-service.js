@@ -18,9 +18,9 @@ class AIService {
         // Configurações da personalidade da IA
         this.personality = {
             name: 'Assistente WhatsApp',
-            description: 'Fala como um amigo normal, sem enrolação. Responde direto, casual, como se tivesse conversando no zap mesmo. Nada de texto gigante ou coisa forçada. Opina naturalmente.',
+            description: 'Fala como um amigo novo, descolado, tipo gente da nova geração. Usa gírias atuais, memes, é irônico quando cabe, mas sempre natural. Nada de "kkk" forçado ou piadas batidas. É o cara que manda bem na resenha, zoa de leve, mas nunca força a barra.',
             style: 'casual', // casual, formal, friendly
-            maxTokens: 800, // Menos tokens = respostas mais diretas
+            maxTokens: 1300, // Menos tokens = respostas mais diretas
             temperature: 0.9
         };
         
@@ -60,13 +60,11 @@ class AIService {
             {
                 role: 'system',
                 content: `${this.personality.description}
-                         Responde curto e direto, tipo 1-2 frases no máximo.
-                         Usa gírias, abreviações tipo "pq", "vc", "tlgd", "mto".
-                         Emoji só quando faz sentido, nada forçado.
-                         Zero formalidade, 100% natural.
-
-                         IMPORTANTE: Se for sticker, comenta sobre ele naturalmente tipo "kkk mto bom esse" ou "que sticker daora". NÃO oferece criar figurinha automaticamente.
-                         Só cria figurinha se a pessoa pedir explicitamente "cria figurinha" junto com uma imagem.`
+                         Responde tipo um brother novo, usa gírias da hora tipo "mano", "tipo assim", "na moral", "de boa", "tranquilo".
+                         Ironia sutil quando cabe, mas nunca forçado. É natural, como se tivesse no zap com um amigo.
+                         Nada de "kkk" o tempo todo ou "hahaha". Ri quando é engraçado de verdade.
+                         Memes só se encaixarem naturalmente. Zero texto gigante ou explicação desnecessária.
+                         Se for chato, diz "bla bla bla" ou "sei lá mano".`
             }
         ];
         
@@ -122,11 +120,14 @@ class AIService {
             {
                 role: 'system',
                 content: `${this.personality.description}
-                         Responde curto e direto, tipo 1-2 frases no máximo.
-                         Se for sticker, comenta tipo "kkkk que isso" ou "mto bom esse ai".
-                         Usa gírias, abreviações tipo "pq", "vc", "tlgd", "mto".
-                         Emoji só quando faz sentido, nada forçado.
-                         Zero formalidade, 100% natural.`
+                         Responde tipo um brother novo, usa gírias da hora tipo "mano", "tipo assim", "na moral", "de boa", "tranquilo".
+                         Ironia sutil quando cabe, mas nunca forçado. É natural, como se tivesse no zap com um amigo.
+                         Nada de "kkk" o tempo todo ou "hahaha". Ri quando é engraçado de verdade.
+                         Memes só se encaixarem naturalmente. Zero texto gigante ou explicação desnecessária.
+                         Se for chato, diz "bla bla bla" ou "sei lá mano".
+
+                         IMPORTANTE: Se for sticker, comenta naturalmente tipo "daora esse ai" ou "que isso brother". NÃO oferece criar figurinha automaticamente.
+                         Só cria figurinha se a pessoa pedir explicitamente "cria figurinha" junto com uma imagem.`
             }
         ];
         
@@ -230,10 +231,11 @@ class AIService {
         // Saudações
         if (this.containsAny(lowerMessage, ['oi', 'olá', 'ola', 'hey', 'hi', 'hello', 'bom dia', 'boa tarde', 'boa noite'])) {
             const greetings = [
-                'Olá! Como posso ajudar você hoje? 😊',
-                'Oi! Tudo bem? Em que posso ser útil?',
-                'Hey! Como está? Posso ajudar com alguma coisa?',
-                'Olá! É um prazer falar com você! 👋'
+                'E aí, tudo na paz?',
+                'Fala brother, de boa?',
+                'Oi mano, que rolê?',
+                'Hey, tranquilo?',
+                'Salve, como tá?'
             ];
             return this.getRandomResponse(greetings);
         }
@@ -241,10 +243,11 @@ class AIService {
         // Perguntas sobre como está
         if (this.containsAny(lowerMessage, ['como vai', 'como está', 'tudo bem', 'como anda', 'td bem'])) {
             const statusResponses = [
-                'Estou indo muito bem, obrigado por perguntar! E você, como está?',
-                'Tudo ótimo por aqui! Como tem passado?',
-                'Indo super bem! E aí, como andam as coisas?',
-                'Muito bem, obrigado! Espero que você também esteja bem! 😊'
+                'De boa, e você? Tranquilo?',
+                'Tudo na paz, mano. E aí, como tá?',
+                'Tranquilo, tipo assim, normal. E vc?',
+                'De boa, brother. Que rolê?',
+                'Tô de boa, na moral. E você?'
             ];
             return this.getRandomResponse(statusResponses);
         }
@@ -252,10 +255,11 @@ class AIService {
         // Perguntas sobre o que é/quem é
         if (this.containsAny(lowerMessage, ['quem é você', 'o que você é', 'quem e voce', 'que você faz'])) {
             const aboutResponses = [
-                'Sou um assistente inteligente aqui para ajudar você! 🤖',
-                'Eu sou uma IA criada para conversar e ajudar com o que precisar!',
-                'Sou seu assistente virtual, sempre pronto para uma boa conversa! ✨',
-                'Um assistente digital que adora ajudar e conversar! 😄'
+                'Sou tipo um brother que sabe de tudo, mano. Pergunta aí!',
+                'Tô aqui pra ajudar no que rolar, tipo um assistente maneiro.',
+                'Sou o cara que responde suas dúvidas, na moral.',
+                'Um bot daora que conversa e ajuda, tipo assim, normal.',
+                'Aqui ó, pra bater papo e resolver o que precisar!'
             ];
             return this.getRandomResponse(aboutResponses);
         }
@@ -263,10 +267,11 @@ class AIService {
         // Agradecimentos
         if (this.containsAny(lowerMessage, ['obrigado', 'obrigada', 'valeu', 'thanks', 'vlw', 'brigadão'])) {
             const thanksResponses = [
-                'Por nada! Sempre que precisar, estarei aqui! 😊',
-                'Disponha! Foi um prazer ajudar!',
-                'Imagina! Fico feliz em poder ajudar! ✨',
-                'De nada! Qualquer coisa é só chamar! 👍'
+                'Tranquilo, brother! De boa!',
+                'Na moral, qualquer coisa é só chamar!',
+                'Por nada mano, tipo assim, normal.',
+                'Valeu! Tô aqui quando precisar.',
+                'De boa, na paz!'
             ];
             return this.getRandomResponse(thanksResponses);
         }
@@ -274,10 +279,11 @@ class AIService {
         // Despedidas
         if (this.containsAny(lowerMessage, ['tchau', 'bye', 'até logo', 'até mais', 'falou', 'xau'])) {
             const goodbyeResponses = [
-                'Até mais! Foi ótimo conversar com você! 👋',
-                'Tchau! Volte sempre que quiser conversar!',
-                'Até logo! Tenha um ótimo dia! ✨',
-                'Falou! Até a próxima! 😊'
+                'Falou brother, até mais!',
+                'Tranquilo, na paz!',
+                'Valeu, qualquer coisa é só chamar!',
+                'De boa mano, até depois!',
+                'É nóis, tipo assim, normal!'
             ];
             return this.getRandomResponse(goodbyeResponses);
         }
@@ -285,9 +291,10 @@ class AIService {
         // Perguntas sobre clima/tempo
         if (this.containsAny(lowerMessage, ['tempo', 'clima', 'chuva', 'sol', 'frio', 'calor'])) {
             const weatherResponses = [
-                'Infelizmente não tenho acesso aos dados meteorológicos no momento. Que tal verificar um app de clima?',
-                'Para informações sobre o tempo, recomendo consultar um site de meteorologia confiável! 🌤️',
-                'Não consigo verificar o clima agora, mas espero que esteja um dia agradável aí! ☀️'
+                'Sei lá mano, não tô vendo o tempo aqui. Olha no Google!',
+                'Tipo assim, não tenho como saber o clima agora. Confere no app!',
+                'Na moral, não consigo ver o tempo. Dá uma olhada no celular!',
+                'Brother, tô sem ver o tempo. Checa no seu app de clima!'
             ];
             return this.getRandomResponse(weatherResponses);
         }
@@ -295,22 +302,22 @@ class AIService {
         // Perguntas genéricas
         if (lowerMessage.includes('?')) {
             const questionResponses = [
-                'Essa é uma pergunta interessante! Infelizmente não tenho todas as respostas, mas posso tentar ajudar de outras formas!',
-                'Hmm, boa pergunta! O que mais gostaria de saber sobre isso?',
-                'Interessante! Você poderia me dar mais detalhes sobre o que está procurando?',
-                'Essa é uma questão complexa! Vamos ver... o que especificamente você gostaria de entender melhor?'
+                'Sei lá mano, pergunta complicada essa aí. Me explica melhor!',
+                'Tipo assim, não manjo muito disso. Me dá mais detalhes!',
+                'Na moral, não sei te dizer. Mas tipo, o que você acha?',
+                'Brother, tô por fora dessa. Me conta mais sobre isso!'
             ];
             return this.getRandomResponse(questionResponses);
         }
         
         // Resposta padrão
         const defaultResponses = [
-            'Interessante! Me conte mais sobre isso.',
-            'Entendi! Como posso ajudar você com essa questão?',
-            'Bacana! Gostaria de conversar mais sobre esse assunto?',
-            'Legal! O que mais você gostaria de compartilhar?',
-            'Que interessante! Continue, estou ouvindo! 😊',
-            'Compreendo! Há algo específico em que posso ajudar?'
+            'Interessante isso que você falou, mano.',
+            'Tipo assim, me conta mais sobre isso.',
+            'Na moral, que rolê hein!',
+            'Brother, tô ligado no que você tá falando.',
+            'De boa, me explica melhor então!',
+            'Tranquilo, tipo assim, normal.'
         ];
         
         return this.getRandomResponse(defaultResponses);
@@ -326,12 +333,12 @@ class AIService {
     
     getFallbackResponse(message) {
         const fallbacks = [
-            'Desculpe, não consegui processar sua mensagem no momento. Pode tentar novamente?',
-            'Ops! Tive um pequeno problema aqui. O que você gostaria de saber?',
-            'Parece que algo deu errado. Como posso ajudar você?',
-            'Humm, não entendi bem. Pode reformular sua pergunta?'
+            'Brother, deu um bug aqui. Tenta de novo?',
+            'Na moral, não rolou agora. Me manda outra mensagem!',
+            'Tipo assim, não entendi direito. Reformula aí!',
+            'Deu erro mano, tenta novamente!'
         ];
-        
+
         return this.getRandomResponse(fallbacks);
     }
     
