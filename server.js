@@ -4,7 +4,7 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
-const { AIService } = require('./src/ai-service');
+const AIService = require('./src/ai-service');
 const StickerService = require('./src/sticker-service');
 const ImageService = require('./src/image-service');
 
@@ -26,6 +26,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const whatsappClient = new WhatsAppClient(io);
 const aiService = new AIService();
 const imageService = new ImageService();
+const stickerService = new StickerService();
 
 // Variáveis globais
 let isConnected = false;
