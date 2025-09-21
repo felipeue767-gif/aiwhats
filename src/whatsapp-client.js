@@ -76,6 +76,17 @@ class WhatsAppClient extends EventEmitter {
                             } catch (error) {
                                 console.error('Erro ao processar imagem:', error);
                             }
+                        }
+                        // Processar sticker estático
+                        else if (message.message.stickerMessage) {
+                            console.log('🎭 Sticker recebido, processando...');
+                            try {
+                                const stickerBuffer = await this.downloadMediaMessage(message);
+                                message.imageData = stickerBuffer;
+                                message.messageType = 'sticker';
+                            } catch (error) {
+                                console.error('Erro ao processar sticker:', error);
+                            }
                         } else {
                             message.messageType = 'text';
                         }

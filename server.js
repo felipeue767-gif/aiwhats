@@ -144,6 +144,8 @@ whatsappClient.on('message', async (message) => {
             messageText = message.message.extendedTextMessage.text;
         } else if (message.message?.imageMessage) {
             messageText = message.message.imageMessage.caption || '📷 Imagem';
+        } else if (message.message?.stickerMessage) {
+            messageText = '🎭 Sticker';
         }
         
         const messageObj = {
@@ -154,11 +156,12 @@ whatsappClient.on('message', async (message) => {
             type: message.messageType || 'text'
         };
         
-        // Adicionar dados da imagem se houver
-        if (message.messageType === 'image' && message.imageData) {
+        // Adicionar dados da imagem ou sticker se houver
+        if ((message.messageType === 'image' || message.messageType === 'sticker') && message.imageData) {
             messageObj.hasImage = true;
             messageObj.imageBase64 = message.imageData.toString('base64');
-            console.log('📷 Imagem processada e adicionada à mensagem');
+            messageObj.isSticker = message.messageType === 'sticker';
+            console.log(`${message.messageType === 'sticker' ? '🎭 Sticker' : '📷 Imagem'} processada e adicionada à mensagem`);
         }
         
         conversation.messages.push(messageObj);
@@ -221,9 +224,13 @@ whatsappClient.on('message', async (message) => {
                     let aiResponse;
                     
                     if (currentMessage.hasImage) {
-                        console.log('🖼️ Enviando imagem para IA analisar...');
+                        const prompt = currentMessage.isSticker ? 
+                            (currentMessage.text || 'que sticker é esse?') : 
+                            (currentMessage.text || 'que que tem na imagem?');
+                        
+                        console.log(`${currentMessage.isSticker ? '🎭 Enviando sticker' : '🖼️ Enviando imagem'} para IA analisar...`);
                         aiResponse = await aiService.generateResponseWithImage(
-                            currentMessage.text || 'O que você vê nesta imagem?',
+                            prompt,
                             currentMessage.imageBase64,
                             conversation.messages
                         );
