@@ -4,7 +4,8 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
-const { AIService, StickerService } = require('./src/ai-service');
+const { AIService } = require('./src/ai-service');
+const StickerService = require('./src/sticker-service');
 const ImageService = require('./src/image-service');
 
 const app = express();
