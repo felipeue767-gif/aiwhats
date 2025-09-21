@@ -22,7 +22,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Instâncias dos serviços
 const whatsappClient = new WhatsAppClient(io);
 const aiService = new AIService();
-const StickerService = require('./src/sticker-service');
 const imageService = new ImageService();
 
 // Variáveis globais
