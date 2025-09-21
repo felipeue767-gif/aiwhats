@@ -188,37 +188,37 @@ whatsappClient.on('message', async (message) => {
             if (currentMessage.text || currentMessage.hasImage) {
                 
                 // Verificar se é solicitação de sticker
-                if (currentMessage.hasImage && stickerService.detectStickerRequest(currentMessage.text)) {
+                if (currentMessage.hasImage && stickerService.detectStickerRequest(currentMessage.text) && !currentMessage.isSticker) {
                     console.log('🎨 Solicitação de sticker detectada!');
-                    
+
                     try {
                         // Enviar mensagem de processamento
                         const processingMsg = stickerService.generateStickerResponse();
                         await whatsappClient.sendMessage(chatId, processingMsg);
-                        
+
                         // Processar imagem para sticker
                         const stickerPath = await stickerService.processImageToSticker(
                             Buffer.from(currentMessage.imageBase64, 'base64'),
                             `sticker_${chatId.split('@')[0]}`
                         );
-                        
+
                         // Aguardar um pouco e enviar sticker
                         setTimeout(async () => {
                             await whatsappClient.sendSticker(chatId, stickerPath);
-                            
+
                             // Enviar mensagem de sucesso
                             const successMsg = stickerService.generateSuccessResponse();
                             await whatsappClient.sendMessage(chatId, successMsg);
-                            
+
                             // Limpar arquivo temporário
                             await stickerService.cleanupTempFile(stickerPath);
                         }, 3000);
-                        
+
                     } catch (error) {
                         console.error('❌ Erro ao criar sticker:', error);
                         await whatsappClient.sendMessage(chatId, '😔 Ops! Não consegui criar a figurinha. Tente novamente!');
                     }
-                    
+
                 } else {
                     // Processamento normal da IA
                     let aiResponse;
