@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>WhatsApp AI - Conversas</title>
+    <link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+    <link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Inter:wght@400;500;700;900&amp;family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+    <script src="/socket.io/socket.io.js"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#38e07b",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#122017",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+    <div class="flex h-screen w-full">
+        <!-- Sidebar com conversas -->
+        <aside class="flex h-full w-96 flex-col border-r border-black/10 dark:border-white/10">
+            <div class="flex h-20 items-center justify-between border-b border-black/10 px-4 dark:border-white/10">
+                <h1 class="text-xl font-bold text-black dark:text-white">Conversas</h1>
+                <div class="flex items-center gap-2">
+                    <div id="connection-status" class="flex items-center gap-2">
+                        <div class="h-3 w-3 rounded-full bg-red-500" id="status-dot"></div>
+                        <span class="text-xs text-black/60 dark:text-white/60" id="status-text">Desconectado</span>
+                    </div>
+                    <button id="back-to-connect" class="flex h-8 w-8 items-center justify-center rounded-full text-black/60 hover:bg-black/5 dark:text-white/60 dark:hover:bg-white/5" title="Voltar para conexão">
+                        <svg fill="currentColor" height="16" viewBox="0 0 256 256" width="16" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Barra de pesquisa -->
+            <div class="p-4">
+                <div class="relative">
+                    <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-black/40 dark:text-white/40" fill="currentColor" height="20" viewBox="0 0 256 256" width="20" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path>
+                    </svg>
+                    <input id="search-input" class="w-full rounded-lg border-black/10 bg-black/5 py-2 pl-10 pr-4 text-black placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/40" placeholder="Buscar conversas" type="text"/>
+                </div>
+            </div>
+            
+            <!-- Lista de conversas -->
+            <div class="flex-1 overflow-y-auto" id="conversations-list">
+                <!-- Conversas serão inseridas dinamicamente aqui -->
+            </div>
+        </aside>
+        
+        <!-- Área principal da conversa -->
+        <main class="flex flex-1 flex-col">
+            <!-- Estado: Nenhuma conversa selecionada -->
+            <div id="no-chat-selected" class="flex-1 flex items-center justify-center">
+                <div class="text-center text-black/60 dark:text-white/60">
+                    <svg class="mx-auto mb-4 h-24 w-24 opacity-50" fill="currentColor" viewBox="0 0 256 256">
+                        <path d="M216,48H40A16,16,0,0,0,24,64V224a15.87,15.87,0,0,0,4,10.54,16,16,0,0,0,22.54-1.46L80,200h136a16,16,0,0,0,16-16V64A16,16,0,0,0,216,48Zm0,136H83.31L40,210.63V64H216Z"/>
+                    </svg>
+                    <h3 class="text-xl font-semibold mb-2">Selecione uma conversa</h3>
+                    <p>Escolha uma conversa da lista para começar a trocar mensagens</p>
+                </div>
+            </div>
+            
+            <!-- Área da conversa ativa -->
+            <div id="active-chat" class="hidden flex flex-col flex-1">
+                <!-- Cabeçalho da conversa -->
+                <div class="flex h-20 items-center justify-between border-b border-black/10 px-6 dark:border-white/10">
+                    <div class="flex items-center gap-4">
+                        <img id="chat-avatar" class="h-12 w-12 rounded-full bg-black/10 dark:bg-white/10" src="" alt="">
+                        <div>
+                            <p id="chat-name" class="font-semibold text-black dark:text-white">Nome do contato</p>
+                            <p id="chat-status" class="text-sm text-black/60 dark:text-white/60">Online</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-black/60 dark:text-white/60">IA Ativa</span>
+                            <label class="relative inline-flex cursor-pointer items-center">
+                                <input id="ai-toggle" class="peer sr-only" type="checkbox" value=""/>
+                                <div class="peer h-6 w-11 rounded-full bg-black/20 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none dark:bg-white/20"></div>
+                            </label>
+                        </div>
+                        <button id="menu-btn" class="flex h-10 w-10 items-center justify-center rounded-full text-black/60 hover:bg-black/5 dark:text-white/60 dark:hover:bg-white/5">
+                            <svg fill="currentColor" height="24" viewBox="0 0 256 256" width="24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M222,128a6,6,0,0,1-6,6H40a6,6,0,0,1,0-12H216A6,6,0,0,1,222,128ZM40,70H160a6,6,0,0,0,0-12H40a6,6,0,0,0,0,12ZM160,198H40a6,6,0,0,0,0,12H160a6,6,0,0,0,0-12Z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Área de mensagens -->
+                <div class="flex-1 overflow-y-auto p-6" id="messages-area">
+                    <!-- Mensagens serão inseridas dinamicamente aqui -->
+                </div>
+                
+                <!-- Área de input -->
+                <div class="border-t border-black/10 bg-background-light p-4 dark:border-white/10 dark:bg-background-dark">
+                    <div class="relative">
+                        <input id="message-input" class="w-full rounded-lg border-black/10 bg-white py-3 pl-4 pr-28 text-black placeholder:text-black/40 focus:outline-none focus:ring-2 focus:ring-primary/50 dark:border-white/10 dark:bg-background-dark dark:text-white dark:placeholder:text-white/40" placeholder="Digite uma mensagem" type="text"/>
+                        <div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-2">
+                            <button id="emoji-btn" class="flex h-10 w-10 items-center justify-center rounded-full text-black/60 hover:bg-black/5 dark:text-white/60 dark:hover:bg-white/5">
+                                <svg fill="currentColor" height="24" viewBox="0 0 256 256" width="24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM80,108a12,12,0,1,1,12,12A12,12,0,0,1,80,108Zm96,0a12,12,0,1,1-12-12A12,12,0,0,1,176,108Zm-1.07,48c-10.29,17.79-27.4,28-46.93,28s-36.63-10.2-46.92-28a8,8,0,1,1,13.84-8c7.47,12.91,19.21,20,33.08,20s25.61-7.1,33.07-20a8,8,0,0,1,13.86,8Z"></path>
+                                </svg>
+                            </button>
+                            <button id="send-btn" class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-black hover:bg-primary/90 transition-colors">
+                                <svg fill="currentColor" height="24" viewBox="0 0 256 256" width="24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L192.69,140H40a8,8,0,0,1,0-16H192.69L138.34,69.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        class WhatsAppChat {
+            constructor() {
+                this.socket = io();
+                this.conversations = new Map();
+                this.activeChat = null;
+                this.isConnected = false;
+                
+                this.initializeElements();
+                this.bindEvents();
+                this.checkConnectionStatus();
+                this.loadConversations();
+            }
+            
+            initializeElements() {
+                // Elementos de status
+                this.statusDot = document.getElementById('status-dot');
+                this.statusText = document.getElementById('status-text');
+                this.backToConnectBtn = document.getElementById('back-to-connect');
+                
+                // Elementos da sidebar
+                this.searchInput = document.getElementById('search-input');
+                this.conversationsList = document.getElementById('conversations-list');
+                
+                // Elementos da conversa
+                this.noChatSelected = document.getElementById('no-chat-selected');
+                this.activeChat = document.getElementById('active-chat');
+                this.chatAvatar = document.getElementById('chat-avatar');
+                this.chatName = document.getElementById('chat-name');
+                this.chatStatus = document.getElementById('chat-status');
+                this.aiToggle = document.getElementById('ai-toggle');
+                this.messagesArea = document.getElementById('messages-area');
+                this.messageInput = document.getElementById('message-input');
+                this.sendBtn = document.getElementById('send-btn');
+            }
+            
+            bindEvents() {
+                // Eventos de navegação
+                this.backToConnectBtn.addEventListener('click', () => {
+                    window.location.href = '/';
+                });
+                
+                // Eventos de pesquisa
+                this.searchInput.addEventListener('input', (e) => {
+                    this.filterConversations(e.target.value);
+                });
+                
+                // Eventos de mensagem
+                this.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.sendMessage();
+                    }
+                });
+                this.sendBtn.addEventListener('click', () => this.sendMessage());
+                
+                // Evento do toggle da IA
+                this.aiToggle.addEventListener('change', (e) => {
+                    this.toggleAI(e.target.checked);
+                });
+                
+                // Eventos do Socket.IO
+                this.socket.on('connect', () => {
+                    console.log('Conectado ao servidor');
+                });
+                
+                this.socket.on('connection-status', (connected) => {
+                    this.updateConnectionStatus(connected);
+                });
+                
+                this.socket.on('new-message', (data) => {
+                    this.handleNewMessage(data);
+                });
+            }
+            
+            async checkConnectionStatus() {
+                try {
+                    const response = await fetch('/api/status');
+                    const data = await response.json();
+                    this.updateConnectionStatus(data.connected);
+                    
+                    if (!data.connected) {
+                        // Redirecionar para conexão se não estiver conectado
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 3000);
+                    }
+                } catch (error) {
+                    console.error('Erro ao verificar status:', error);
+                }
+            }
+            
+            async loadConversations() {
+                try {
+                    const response = await fetch('/api/conversations');
+                    const conversations = await response.json();
+                    
+                    conversations.forEach(conv => {
+                        this.conversations.set(conv.id, conv);
+                    });
+                    
+                    this.renderConversations();
+                } catch (error) {
+                    console.error('Erro ao carregar conversas:', error);
+                }
+            }
+            
+            renderConversations() {
+                this.conversationsList.innerHTML = '';
+                
+                if (this.conversations.size === 0) {
+                    this.conversationsList.innerHTML = `
+                        <div class="p-4 text-center text-black/60 dark:text-white/60">
+                            <p class="text-sm">Nenhuma conversa ainda</p>
+                            <p class="text-xs mt-1">As conversas aparecerão aqui quando você receber mensagens</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                Array.from(this.conversations.values())
+                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                    .forEach(conv => {
+                        const conversationElement = this.createConversationElement(conv);
+                        this.conversationsList.appendChild(conversationElement);
+                    });
+            }
+            
+            createConversationElement(conversation) {
+                const div = document.createElement('div');
+                div.className = `flex cursor-pointer items-start gap-4 p-4 hover:bg-black/5 dark:hover:bg-white/5 ${
+                    this.activeChat?.id === conversation.id ? 'bg-black/5 dark:bg-white/5' : ''
+                }`;
+                div.dataset.chatId = conversation.id;
+                
+                const avatar = conversation.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conversation.name)}&background=38e07b&color=000&size=48`;
+                const time = this.formatTime(conversation.timestamp);
+                const lastMessage = conversation.lastMessage || 'Sem mensagens';
+                
+                div.innerHTML = `
+                    <img alt="${conversation.name}" class="h-12 w-12 rounded-full" src="${avatar}"/>
+                    <div class="flex-1 overflow-hidden">
+                        <div class="flex items-baseline justify-between">
+                            <p class="truncate font-semibold text-black dark:text-white">${conversation.name}</p>
+                            <p class="text-xs text-black/60 dark:text-white/60">${time}</p>
+                        </div>
+                        <div class="flex items-center justify-between mt-1">
+                            <p class="truncate text-sm text-black/60 dark:text-white/60">${lastMessage}</p>
+                            ${conversation.aiEnabled ? '<div class="w-2 h-2 bg-primary rounded-full" title="IA Ativa"></div>' : ''}
+                        </div>
+                    </div>
+                `;
+                
+                div.addEventListener('click', () => {
+                    this.selectConversation(conversation);
+                });
+                
+                return div;
+            }
+            
+            selectConversation(conversation) {
+                this.activeChat = conversation;
+                
+                // Atualizar UI
+                this.noChatSelected.style.display = 'none';
+                document.getElementById('active-chat').classList.remove('hidden');
+                
+                // Atualizar cabeçalho
+                const avatar = conversation.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conversation.name)}&background=38e07b&color=000&size=48`;
+                this.chatAvatar.src = avatar;
+                this.chatName.textContent = conversation.name;
+                this.chatStatus.textContent = 'Online';
+                this.aiToggle.checked = conversation.aiEnabled || false;
+                
+                // Renderizar mensagens
+                this.renderMessages(conversation.messages || []);
+                
+                // Atualizar lista de conversas
+                this.renderConversations();
+            }
+            
+            renderMessages(messages) {
+                this.messagesArea.innerHTML = '';
+                
+                if (messages.length === 0) {
+                    this.messagesArea.innerHTML = `
+                        <div class="text-center text-black/60 dark:text-white/60">
+                            <p class="text-sm">Nenhuma mensagem ainda</p>
+                            <p class="text-xs mt-1">Comece uma conversa digitando uma mensagem abaixo</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                messages.forEach(message => {
+                    const messageElement = this.createMessageElement(message);
+                    this.messagesArea.appendChild(messageElement);
+                });
+                
+                // Scroll para baixo
+                this.messagesArea.scrollTop = this.messagesArea.scrollHeight;
+            }
+            
+            createMessageElement(message) {
+                const div = document.createElement('div');
+                div.className = `flex items-start gap-4 mb-6 ${message.fromMe ? 'justify-end' : ''}`;
+                
+                const time = this.formatTime(message.timestamp);
+                const avatar = message.fromMe ? 
+                    'https://ui-avatars.com/api/?name=Eu&background=38e07b&color=000&size=40' :
+                    (this.activeChat.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(this.activeChat.name)}&background=38e07b&color=000&size=40`);
+                
+                if (message.fromMe) {
+                    div.innerHTML = `
+                        <div class="max-w-md rounded-lg rounded-tr-none bg-primary p-3">
+                            <p class="text-sm text-black">${this.escapeHtml(message.text)}</p>
+                            <p class="mt-1 text-right text-xs text-black/80">${time}</p>
+                        </div>
+                        <img alt="Eu" class="h-10 w-10 rounded-full" src="${avatar}"/>
+                    `;
+                } else {
+                    div.innerHTML = `
+                        <img alt="${this.activeChat.name}" class="h-10 w-10 rounded-full" src="${avatar}"/>
+                        <div class="max-w-md rounded-lg rounded-tl-none bg-black/5 p-3 dark:bg-white/5">
+                            <p class="text-sm text-black dark:text-white">${this.escapeHtml(message.text)}</p>
+                            <p class="mt-1 text-right text-xs text-black/50 dark:text-white/50">${time}</p>
+                        </div>
+                    `;
+                }
+                
+                return div;
+            }
+            
+            async sendMessage() {
+                const text = this.messageInput.value.trim();
+                if (!text || !this.activeChat) return;
+                
+                try {
+                    const response = await fetch('/api/send-message', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            chatId: this.activeChat.id,
+                            message: text
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        // Limpar input
+                        this.messageInput.value = '';
+                        
+                        // Adicionar mensagem localmente (será substituída pela do servidor)
+                        const message = {
+                            id: Date.now().toString(),
+                            text: text,
+                            fromMe: true,
+                            timestamp: new Date()
+                        };
+                        
+                        this.activeChat.messages.push(message);
+                        this.renderMessages(this.activeChat.messages);
+                    }
+                } catch (error) {
+                    console.error('Erro ao enviar mensagem:', error);
+                }
+            }
+            
+            async toggleAI(enabled) {
+                if (!this.activeChat) return;
+                
+                try {
+                    const response = await fetch('/api/toggle-ai', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            chatId: this.activeChat.id,
+                            enabled: enabled
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        this.activeChat.aiEnabled = enabled;
+                        this.conversations.set(this.activeChat.id, this.activeChat);
+                        this.renderConversations();
+                    }
+                } catch (error) {
+                    console.error('Erro ao alterar IA:', error);
+                    this.aiToggle.checked = !enabled; // Reverter
+                }
+            }
+            
+            handleNewMessage(data) {
+                const { chatId, conversation } = data;
+                
+                // Atualizar conversa
+                this.conversations.set(chatId, conversation);
+                
+                // Se esta é a conversa ativa, atualizar mensagens
+                if (this.activeChat && this.activeChat.id === chatId) {
+                    this.activeChat = conversation;
+                    this.renderMessages(conversation.messages || []);
+                }
+                
+                // Atualizar lista de conversas
+                this.renderConversations();
+            }
+            
+            filterConversations(searchTerm) {
+                const conversationElements = this.conversationsList.querySelectorAll('[data-chat-id]');
+                
+                conversationElements.forEach(element => {
+                    const conversation = this.conversations.get(element.dataset.chatId);
+                    const matchesSearch = conversation.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        conversation.lastMessage.toLowerCase().includes(searchTerm.toLowerCase());
+                    
+                    element.style.display = matchesSearch ? 'flex' : 'none';
+                });
+            }
+            
+            updateConnectionStatus(connected) {
+                this.isConnected = connected;
+                
+                if (connected) {
+                    this.statusDot.className = 'h-3 w-3 rounded-full bg-green-500';
+                    this.statusText.textContent = 'Conectado';
+                } else {
+                    this.statusDot.className = 'h-3 w-3 rounded-full bg-red-500';
+                    this.statusText.textContent = 'Desconectado';
+                }
+            }
+            
+            formatTime(timestamp) {
+                const date = new Date(timestamp);
+                const now = new Date();
+                const diffTime = Math.abs(now - date);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 1) {
+                    return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                } else if (diffDays === 2) {
+                    return 'Ontem';
+                } else if (diffDays <= 7) {
+                    return date.toLocaleDateString('pt-BR', { weekday: 'short' });
+                } else {
+                    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                }
+            }
+            
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+        
+        // Inicializar quando o DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', () => {
+            new WhatsAppChat();
+        });
+    </script>
+</body>
+</html>

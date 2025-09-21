@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>WhatsApp AI - Connect Account</title>
+    <link href="data:image/x-icon;base64," rel="icon" type="image/x-icon"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+    <link as="style" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Inter:wght@400;500;700;900&amp;family=Noto+Sans:wght@400;500;700;900" onload="this.rel='stylesheet'" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#38e07b",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#122017",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+    <div class="flex h-screen w-full">
+        <aside class="flex h-full w-96 flex-col border-r border-black/10 dark:border-white/10">
+            <div class="flex h-20 items-center justify-between border-b border-black/10 px-4 dark:border-white/10">
+                <h1 class="text-xl font-bold text-black dark:text-white">WhatsApp AI</h1>
+                <div class="flex items-center gap-2">
+                    <div id="status-indicator" class="flex items-center gap-2">
+                        <div class="h-3 w-3 rounded-full bg-red-500" id="status-dot"></div>
+                        <span class="text-sm text-black/60 dark:text-white/60" id="status-text">Desconectado</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4">
+                <div class="text-center text-black/60 dark:text-white/60">
+                    <p class="text-sm">Conecte seu WhatsApp para começar</p>
+                </div>
+            </div>
+        </aside>
+        
+        <main class="flex-1 flex flex-col items-center justify-center bg-background-light dark:bg-background-dark p-8">
+            <div class="w-full max-w-lg text-center">
+                <!-- Estado: Desconectado -->
+                <div id="disconnected-state">
+                    <h2 class="text-3xl font-bold text-black dark:text-white">Conectar WhatsApp</h2>
+                    <p class="mt-2 text-base text-black/60 dark:text-white/60">
+                        Para começar, clique no botão abaixo para gerar o QR Code
+                    </p>
+                    <div class="mt-8">
+                        <button id="connect-btn" class="inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-4 font-semibold text-black transition-colors hover:bg-primary/90">
+                            <svg class="lucide lucide-smartphone" fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20">
+                                <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+                                <path d="M12 18h.01"/>
+                            </svg>
+                            <span>Conectar WhatsApp</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Estado: Conectando -->
+                <div id="connecting-state" class="hidden">
+                    <h2 class="text-3xl font-bold text-black dark:text-white">Escaneie o QR Code</h2>
+                    <p class="mt-2 text-base text-black/60 dark:text-white/60">
+                        Abra o WhatsApp no seu celular e escaneie o código
+                    </p>
+                    <div class="mt-8 flex justify-center">
+                        <div class="bg-white p-6 rounded-xl shadow-lg">
+                            <canvas id="qr-canvas" class="h-64 w-64"></canvas>
+                        </div>
+                    </div>
+                    <div class="mt-8 text-left">
+                        <h3 class="text-lg font-semibold text-black dark:text-white">Como conectar:</h3>
+                        <ol class="mt-4 space-y-3 list-decimal list-inside text-black/60 dark:text-white/60">
+                            <li>Abra o WhatsApp no seu celular</li>
+                            <li>Toque nos <span class="font-semibold text-black dark:text-white">três pontos</span> no canto superior direito</li>
+                            <li>Selecione <span class="font-semibold text-black dark:text-white">Aparelhos conectados</span></li>
+                            <li>Toque em <span class="font-semibold text-black dark:text-white">Conectar um aparelho</span></li>
+                            <li>Aponte a câmera para o QR Code acima</li>
+                        </ol>
+                    </div>
+                    <div class="mt-8">
+                        <button id="refresh-qr-btn" class="inline-flex items-center gap-2 rounded-lg bg-black/10 px-5 py-3 font-semibold text-black dark:bg-white/10 dark:text-white transition-colors hover:bg-black/20 dark:hover:bg-white/20">
+                            <svg class="lucide lucide-rotate-cw" fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20">
+                                <path d="M21 2v6h-6"></path>
+                                <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                            </svg>
+                            <span>Atualizar QR Code</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Estado: Conectado -->
+                <div id="connected-state" class="hidden">
+                    <div class="text-center">
+                        <div class="mx-auto w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mb-6">
+                            <svg class="lucide lucide-check" fill="none" height="40" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="40">
+                                <path d="m9 12 2 2 4-4"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-3xl font-bold text-black dark:text-white">WhatsApp Conectado!</h2>
+                        <p class="mt-2 text-base text-black/60 dark:text-white/60">
+                            Seu WhatsApp foi conectado com sucesso. Agora você pode acessar suas conversas.
+                        </p>
+                        <div class="mt-8">
+                            <a href="/chat" class="inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-4 font-semibold text-black transition-colors hover:bg-primary/90">
+                                <svg class="lucide lucide-message-circle" fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="20">
+                                    <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/>
+                                </svg>
+                                <span>Acessar Conversas</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts carregados na ordem correta -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+    
+    <script>
+        class WhatsAppConnection {
+            constructor() {
+                this.socket = io();
+                this.isConnected = false;
+                this.qrCode = null;
+                
+                this.initializeElements();
+                this.bindEvents();
+                this.checkInitialStatus();
+            }
+            
+            initializeElements() {
+                this.connectBtn = document.getElementById('connect-btn');
+                this.refreshQrBtn = document.getElementById('refresh-qr-btn');
+                this.qrCanvas = document.getElementById('qr-canvas');
+                this.statusDot = document.getElementById('status-dot');
+                this.statusText = document.getElementById('status-text');
+                
+                this.disconnectedState = document.getElementById('disconnected-state');
+                this.connectingState = document.getElementById('connecting-state');
+                this.connectedState = document.getElementById('connected-state');
+            }
+            
+            bindEvents() {
+                // Eventos dos botões
+                this.connectBtn.addEventListener('click', () => this.startConnection());
+                this.refreshQrBtn.addEventListener('click', () => this.refreshQrCode());
+                
+                // Eventos do Socket.IO
+                this.socket.on('connect', () => {
+                    console.log('Conectado ao servidor');
+                });
+                
+                this.socket.on('qr-code', (qr) => {
+                    console.log('QR Code recebido do servidor:', qr ? 'QR válido' : 'QR inválido');
+                    this.displayQrCode(qr);
+                });
+                
+                this.socket.on('connection-status', (connected) => {
+                    console.log('Status da conexão:', connected);
+                    this.updateConnectionStatus(connected);
+                });
+                
+                this.socket.on('connection-error', (error) => {
+                    console.error('Erro de conexão:', error);
+                    this.showError(error);
+                });
+            }
+            
+            async checkInitialStatus() {
+                try {
+                    const response = await fetch('/api/status');
+                    const data = await response.json();
+                    this.updateConnectionStatus(data.connected);
+                } catch (error) {
+                    console.error('Erro ao verificar status:', error);
+                }
+            }
+            
+            startConnection() {
+                console.log('Iniciando conexão...');
+                console.log('Socket conectado?', this.socket.connected);
+                this.showConnectingState();
+                this.socket.emit('start-connection');
+                console.log('Evento start-connection emitido');
+            }
+            
+            refreshQrCode() {
+                console.log('Atualizando QR Code...');
+                this.socket.emit('start-connection');
+            }
+            
+            displayQrCode(qrString) {
+                this.qrCode = qrString;
+                
+                try {
+                    // Verificar se temos qrcode library disponível
+                    if (typeof qrcode !== 'undefined') {
+                        console.log('Usando biblioteca qrcode-generator');
+                        const qr = qrcode(0, 'M');
+                        qr.addData(qrString);
+                        qr.make();
+                        
+                        // Gerar HTML e inserir no canvas
+                        const qrHTML = qr.createImgTag(4, 8);
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = qrHTML;
+                        const img = tempDiv.querySelector('img');
+                        
+                        // Desenhar no canvas
+                        const ctx = this.qrCanvas.getContext('2d');
+                        const imgElement = new Image();
+                        imgElement.onload = () => {
+                            this.qrCanvas.width = 256;
+                            this.qrCanvas.height = 256;
+                            ctx.drawImage(imgElement, 0, 0, 256, 256);
+                            console.log('QR Code exibido com sucesso');
+                        };
+                        imgElement.src = img.src;
+                        
+                    } else {
+                        // Fallback: mostrar QR como texto
+                        console.warn('Biblioteca QR não disponível, usando fallback');
+                        const ctx = this.qrCanvas.getContext('2d');
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(0, 0, 256, 256);
+                        ctx.fillStyle = 'black';
+                        ctx.font = '12px monospace';
+                        ctx.fillText('QR Code:', 10, 30);
+                        ctx.fillText('Abra o console', 10, 50);
+                        ctx.fillText('para ver o código', 10, 70);
+                        console.log('QR Code String:', qrString);
+                    }
+                } catch (error) {
+                    console.error('Erro ao gerar QR Code:', error);
+                    this.showError('Erro ao gerar QR Code: ' + error.message);
+                }
+            }
+            
+            updateConnectionStatus(connected) {
+                this.isConnected = connected;
+                
+                if (connected) {
+                    this.statusDot.className = 'h-3 w-3 rounded-full bg-green-500';
+                    this.statusText.textContent = 'Conectado';
+                    this.showConnectedState();
+                } else {
+                    this.statusDot.className = 'h-3 w-3 rounded-full bg-red-500';
+                    this.statusText.textContent = 'Desconectado';
+                    this.showDisconnectedState();
+                }
+            }
+            
+            showDisconnectedState() {
+                this.disconnectedState.classList.remove('hidden');
+                this.connectingState.classList.add('hidden');
+                this.connectedState.classList.add('hidden');
+            }
+            
+            showConnectingState() {
+                this.disconnectedState.classList.add('hidden');
+                this.connectingState.classList.remove('hidden');
+                this.connectedState.classList.add('hidden');
+            }
+            
+            showConnectedState() {
+                this.disconnectedState.classList.add('hidden');
+                this.connectingState.classList.add('hidden');
+                this.connectedState.classList.remove('hidden');
+            }
+            
+            showError(message) {
+                alert('Erro: ' + message);
+            }
+        }
+        
+        // Inicializar quando o DOM estiver pronto
+        document.addEventListener('DOMContentLoaded', () => {
+            let attempts = 0;
+            const maxAttempts = 50; // 5 segundos máximo
+            
+            // Aguardar o carregamento das bibliotecas
+            const checkLibraries = () => {
+                attempts++;
+                console.log(`Tentativa ${attempts}: io=${typeof io}, qrcode=${typeof qrcode}`);
+                
+                if (typeof io !== 'undefined') {
+                    console.log('Socket.IO carregado! Iniciando aplicação...');
+                    // Não precisamos aguardar QRCode, temos fallback
+                    new WhatsAppConnection();
+                } else if (attempts < maxAttempts) {
+                    setTimeout(checkLibraries, 100);
+                } else {
+                    console.error('Erro: Socket.IO não carregou após 5 segundos');
+                    alert('Erro ao carregar Socket.IO. Recarregue a página.');
+                }
+            };
+            
+            // Começar verificação após um pequeno delay
+            setTimeout(checkLibraries, 200);
+        });
+    </script>
+</body>
+</html>
