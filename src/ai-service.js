@@ -20,8 +20,8 @@ class AIService {
             name: 'Assistente WhatsApp',
             description: 'Opine, aja como um humano. Escreva naturalmente informal como um humano. Opine. Nao foque apenas em ajudar.',
             style: 'casual', // casual, formal, friendly
-            maxTokens: 2000,
-            temperature: 1.5
+            maxTokens: 1500,
+            temperature: 1
         };
         
         console.log('🤖 IA configurada: Google Gemini 1.5 Flash 8B via Requesty');

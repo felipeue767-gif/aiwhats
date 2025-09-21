@@ -91,16 +91,38 @@ class WhatsAppClient extends EventEmitter {
         }
     }
     
-    async sendMessage(chatId, text) {
+    async sendMessage(chatId, message) {
         if (!this.sock || !this.isConnected) {
             throw new Error('WhatsApp não está conectado');
         }
         
         try {
-            await this.sock.sendMessage(chatId, { text });
+            await this.sock.sendMessage(chatId, { text: message });
             console.log('Mensagem enviada para:', chatId);
         } catch (error) {
             console.error('Erro ao enviar mensagem:', error);
+            throw error;
+        }
+    }
+    
+    async sendSticker(chatId, stickerPath) {
+        if (!this.sock || !this.isConnected) {
+            throw new Error('WhatsApp não está conectado');
+        }
+        
+        try {
+            console.log('📤 Enviando sticker para:', chatId);
+            
+            const stickerBuffer = await fs.readFile(stickerPath);
+            
+            await this.sock.sendMessage(chatId, {
+                sticker: stickerBuffer,
+                mimetype: 'image/webp'
+            });
+            
+            console.log('✅ Sticker enviado com sucesso!');
+        } catch (error) {
+            console.error('❌ Erro ao enviar sticker:', error);
             throw error;
         }
     }
