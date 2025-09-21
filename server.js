@@ -3,8 +3,7 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
-const WhatsAppClient = require('./src/whatsapp-client');
-const AIService = require('./src/ai-service');
+const { AIService, StickerService } = require('./src/ai-service');
 
 const app = express();
 const server = createServer(app);
@@ -24,7 +23,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const whatsappClient = new WhatsAppClient(io);
 const aiService = new AIService();
 const StickerService = require('./src/sticker-service');
-const stickerService = new StickerService();
+const imageService = new ImageService();
 
 // Variáveis globais
 let isConnected = false;
@@ -187,61 +186,103 @@ whatsappClient.on('message', async (message) => {
             
             if (currentMessage.text || currentMessage.hasImage) {
                 
-                // Verificar se é solicitação de sticker
-                if (currentMessage.hasImage && stickerService.detectStickerRequest(currentMessage.text) && !currentMessage.isSticker) {
-                    console.log('🎨 Solicitação de sticker detectada!');
+                // Verificar se é solicitação de imagem
+                if (currentMessage.text && imageService.detectImageRequest(currentMessage.text)) {
+                    console.log('🎨 Pedido de geração de imagem detectado!');
 
                     try {
+                        // Extrair o prompt da mensagem
+                        const prompt = imageService.extractPrompt(currentMessage.text);
+
                         // Enviar mensagem de processamento
-                        const processingMsg = stickerService.generateStickerResponse();
+                        const processingMsg = `🎨 Gerando imagem: "${prompt}"... Um momento!`;
                         await whatsappClient.sendMessage(chatId, processingMsg);
 
-                        // Processar imagem para sticker
-                        const stickerPath = await stickerService.processImageToSticker(
-                            Buffer.from(currentMessage.imageBase64, 'base64'),
-                            `sticker_${chatId.split('@')[0]}`
-                        );
+                        // Gerar a imagem
+                        const imageResult = await imageService.generateImage(prompt);
 
-                        // Aguardar um pouco e enviar sticker
-                        setTimeout(async () => {
-                            await whatsappClient.sendSticker(chatId, stickerPath);
+                        if (imageResult.success) {
+                            // Adicionar aos dados da mensagem para a IA
+                            currentMessage.hasImage = true;
+                            currentMessage.imageBase64 = imageResult.imageBase64;
+                            currentMessage.imageMimeType = imageResult.mimeType;
+                            currentMessage.generatedImage = true;
+                            currentMessage.imagePrompt = prompt;
 
-                            // Enviar mensagem de sucesso
-                            const successMsg = stickerService.generateSuccessResponse();
-                            await whatsappClient.sendMessage(chatId, successMsg);
+                            // Enviar a imagem
+                            await whatsappClient.sendMessage(chatId, {
+                                image: Buffer.from(imageResult.imageBase64, 'base64'),
+                                caption: imageService.generateImageDescription(prompt)
+                            });
 
-                            // Limpar arquivo temporário
-                            await stickerService.cleanupTempFile(stickerPath);
-                        }, 3000);
+                            console.log('✅ Imagem gerada e enviada com sucesso!');
+
+                        } else {
+                            await whatsappClient.sendMessage(chatId, '😔 Ops! Não consegui gerar a imagem. Tenta com outro prompt?');
+                        }
 
                     } catch (error) {
-                        console.error('❌ Erro ao criar sticker:', error);
-                        await whatsappClient.sendMessage(chatId, '😔 Ops! Não consegui criar a figurinha. Tente novamente!');
+                        console.error('❌ Erro ao gerar imagem:', error);
+                        await whatsappClient.sendMessage(chatId, '😔 Deu erro na geração da imagem. Tenta novamente!');
                     }
 
                 } else {
-                    // Processamento normal da IA
-                    let aiResponse;
-                    
-                    if (currentMessage.hasImage) {
-                        const prompt = currentMessage.isSticker ? 
-                            (currentMessage.text || 'que sticker é esse?') : 
-                            (currentMessage.text || 'que que tem na imagem?');
-                        
-                        console.log(`${currentMessage.isSticker ? '🎭 Enviando sticker' : '🖼️ Enviando imagem'} para IA analisar...`);
-                        aiResponse = await aiService.generateResponseWithImage(
-                            prompt,
-                            currentMessage.imageBase64,
-                            conversation.messages
-                        );
+                    // Verificar se é solicitação de sticker
+                    if (currentMessage.hasImage && stickerService.detectStickerRequest(currentMessage.text) && !currentMessage.isSticker) {
+                        console.log('🎨 Solicitação de sticker detectada!');
+
+                        try {
+                            // Enviar mensagem de processamento
+                            const processingMsg = stickerService.generateStickerResponse();
+                            await whatsappClient.sendMessage(chatId, processingMsg);
+
+                            // Processar imagem para sticker
+                            const stickerPath = await stickerService.processImageToSticker(
+                                Buffer.from(currentMessage.imageBase64, 'base64'),
+                                `sticker_${chatId.split('@')[0]}`
+                            );
+
+                            // Aguardar um pouco e enviar sticker
+                            setTimeout(async () => {
+                                await whatsappClient.sendSticker(chatId, stickerPath);
+
+                                // Enviar mensagem de sucesso
+                                const successMsg = stickerService.generateSuccessResponse();
+                                await whatsappClient.sendMessage(chatId, successMsg);
+
+                                // Limpar arquivo temporário
+                                await stickerService.cleanupTempFile(stickerPath);
+                            }, 3000);
+
+                        } catch (error) {
+                            console.error('❌ Erro ao criar sticker:', error);
+                            await whatsappClient.sendMessage(chatId, '😔 Ops! Não consegui criar a figurinha. Tente novamente!');
+                        }
+
                     } else {
-                        aiResponse = await aiService.generateResponse(currentMessage.text, conversation.messages);
+                        // Processamento normal da IA
+                        let aiResponse;
+
+                        if (currentMessage.hasImage) {
+                            const prompt = currentMessage.isSticker ?
+                                (currentMessage.text || 'que sticker é esse?') :
+                                (currentMessage.text || 'que que tem na imagem?');
+
+                            console.log(`${currentMessage.isSticker ? '🎭 Enviando sticker' : '🖼️ Enviando imagem'} para IA analisar...`);
+                            aiResponse = await aiService.generateResponseWithImage(
+                                prompt,
+                                currentMessage.imageBase64,
+                                conversation.messages
+                            );
+                        } else {
+                            aiResponse = await aiService.generateResponse(currentMessage.text, conversation.messages);
+                        }
+
+                        // Aguardar um pouco para parecer mais natural
+                        setTimeout(async () => {
+                            await whatsappClient.sendMessage(chatId, aiResponse);
+                        }, 2000 + Math.random() * 3000); // 2-5 segundos
                     }
-                    
-                    // Aguardar um pouco para parecer mais natural
-                    setTimeout(async () => {
-                        await whatsappClient.sendMessage(chatId, aiResponse);
-                    }, 2000 + Math.random() * 3000); // 2-5 segundos
                 }
             }
         }
