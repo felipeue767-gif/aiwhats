@@ -27,8 +27,8 @@ class ImageService {
             // Codifica o prompt para URL
             const encodedPrompt = encodeURIComponent(optimizedPrompt);
             
-            // URL mais simples e direta do Pollinations
-            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true&enhance=true`;
+            // Testar diferentes URLs do Pollinations.ai
+            const imageUrl = `https://pollinations.ai/p/${encodedPrompt}?width=1024&height=1024&nologo=true`;
             
             console.log('🔗 URL da imagem:', imageUrl);
 
